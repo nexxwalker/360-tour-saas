@@ -1,60 +1,65 @@
-version: '3.8'
-
 services:
-  # PHP-Apache Web Server
   web:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: splash360_web
+    restart: unless-stopped
     ports:
-      - "8080:80"
+      - "${WEB_PORT:-8080}:80"
     volumes:
       - ./:/var/www/html
       - ./public/uploads:/var/www/html/public/uploads
     environment:
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_NAME=splash360_tour
-      - DB_USER=splash360
-      - DB_PASS=splash360_password
-      - APP_URL=http://localhost:8080
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_NAME: ${DB_NAME:-splash360_tour}
+      DB_USER: ${DB_USER:-splash360}
+      DB_PASS: ${DB_PASS:-splash360_password}
+      APP_URL: ${APP_URL:-http://localhost:8080}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - splash360_network
 
-  # MySQL Database
   db:
     image: mysql:8.0
     container_name: splash360_db
+    restart: unless-stopped
     ports:
-      - "3307:3306"
+      - "${DB_PORT_HOST:-3307}:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=root_password
-      - MYSQL_DATABASE=splash360_tour
-      - MYSQL_USER=splash360
-      - MYSQL_PASSWORD=splash360_password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
+      MYSQL_DATABASE: ${DB_NAME:-splash360_tour}
+      MYSQL_USER: ${DB_USER:-splash360}
+      MYSQL_PASSWORD: ${DB_PASS:-splash360_password}
     volumes:
       - db_data:/var/lib/mysql
-      - ./database.sql:/docker-entrypoint-initdb.d/database.sql
+      - ./database.sql:/docker-entrypoint-initdb.d/database.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
     networks:
       - splash360_network
     command: --default-authentication-plugin=mysql_native_password
 
-  # phpMyAdmin (optional - for database management)
   phpmyadmin:
     image: phpmyadmin:latest
     container_name: splash360_phpmyadmin
+    restart: unless-stopped
     ports:
-      - "8081:80"
+      - "${PHPMYADMIN_PORT:-8081}:80"
     environment:
-      - PMA_HOST=db
-      - PMA_PORT=3306
-      - PMA_USER=splash360
-      - PMA_PASSWORD=splash360_password
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_USER: ${DB_USER:-splash360}
+      PMA_PASSWORD: ${DB_PASS:-splash360_password}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - splash360_network
 

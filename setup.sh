@@ -23,9 +23,13 @@ if ! command -v docker &> /dev/null; then
     exit 1
 fi
 
-if ! command -v docker-compose &> /dev/null; then
+if docker compose version &> /dev/null; then
+    COMPOSE_CMD="docker compose"
+elif command -v docker-compose &> /dev/null; then
+    COMPOSE_CMD="docker-compose"
+else
     echo -e "${RED}Error: Docker Compose is not installed!${NC}"
-    echo "Please install Docker Compose first: https://docs.docker.com/compose/install/"
+    echo "Please install Docker Desktop or the Docker Compose plugin: https://docs.docker.com/compose/install/"
     exit 1
 fi
 
@@ -51,7 +55,7 @@ echo ""
 
 # Start Docker containers
 echo -e "${YELLOW}Starting Docker containers...${NC}"
-docker-compose up -d
+$COMPOSE_CMD up -d
 
 echo ""
 echo -e "${GREEN}Waiting for services to be ready...${NC}"
